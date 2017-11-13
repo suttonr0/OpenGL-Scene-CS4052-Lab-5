@@ -1,0 +1,4 @@
+﻿  main.cpp
+c:\.trinity 4\cs4052 computer graphics\lab 5\lab 5 code\lab1project\main.cpp(268): warning C4305: 'argument': truncation from 'double' to 'float'
+  Lab1Project.vcxproj -> C:\.Trinity 4\CS4052 Computer Graphics\Lab 5\Lab 5 Code\Debug\Lab1Project.exe
+  Lab1Project.vcxproj -> C:\.Trinity 4\CS4052 Computer Graphics\Lab 5\Lab 5 Code\Debug\Lab1Project.pdb (Partial PDB)
