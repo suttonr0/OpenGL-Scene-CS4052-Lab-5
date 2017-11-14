@@ -23,13 +23,15 @@
   ----------------------------------------------------------------------------*/
 // this mesh is a dae file format but you should be able to use any other format too, obj is typically what is used
 // put the mesh in your project directory, or provide a filepath for it here
-#define MESH_NAME "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/monkeyhead.dae"
+#define MESH_NAME1 "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/monkeyhead.dae"
+#define MESH_NAME2 "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/untitled.dae"
 /*----------------------------------------------------------------------------
   ----------------------------------------------------------------------------*/
 
 std::vector<float> g_vp, g_vn, g_vt;
 int g_point_count = 0;
-
+int monkey_count = 0;
+int untitled_count = 0;
 
 // Macro for indexing vertex buffer
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
@@ -39,11 +41,15 @@ GLuint shaderProgramID;
 
 
 unsigned int mesh_vao = 0;
+GLuint monkeyID = 1;
+GLuint untitledID = 2;
+
 int width = 800;
 int height = 600;
 
 GLuint loc1, loc2, loc3;
 GLfloat rotate_y = 0.0f;
+GLfloat translate_y = 0.0f;
 
 
 #pragma region MESH LOADING
@@ -66,9 +72,26 @@ bool load_mesh (const char* file_name) {
   printf ("  %i textures\n", scene->mNumTextures);
   
   for (unsigned int m_i = 0; m_i < scene->mNumMeshes; m_i++) {
-    const aiMesh* mesh = scene->mMeshes[m_i];
-    printf ("    %i vertices in mesh\n", mesh->mNumVertices);
-    g_point_count = mesh->mNumVertices;
+	  const aiMesh* mesh = scene->mMeshes[m_i];
+	  printf("    %i vertices in mesh\n", mesh->mNumVertices);
+
+	  ////----------------------------------------
+	  g_vp.clear();
+	  g_vn.clear();
+	  g_vt.clear();
+
+	  if (file_name == MESH_NAME1) {
+		  printf("found monkey\n");
+		  monkey_count = mesh->mNumVertices;
+	  }
+	  else if (file_name == MESH_NAME2) {
+	  untitled_count = mesh->mNumVertices;
+	  printf("found other object\n");
+	  }
+	  else
+		g_point_count = mesh->mNumVertices;
+	////----------------------------------------
+
     for (unsigned int v_i = 0; v_i < mesh->mNumVertices; v_i++) {
       if (mesh->HasPositions ()) {
         const aiVector3D* vp = &(mesh->mVertices[v_i]);
@@ -198,7 +221,11 @@ GLuint CompileShaders()
 // VBO Functions - click on + to expand
 #pragma region VBO_FUNCTIONS
 
-void generateObjectBufferMesh() {
+
+// make g_vp,... local but return them afterwards
+// g_pointcount 
+// Pass Mesh_Name to the generateObjectBufferMesh and get it to return the vao
+void generateObjectBufferMesh(GLuint &vao, const char* meshname, int &count ) {
 /*----------------------------------------------------------------------------
                    LOAD MESH HERE AND COPY INTO BUFFERS
   ----------------------------------------------------------------------------*/
@@ -206,27 +233,29 @@ void generateObjectBufferMesh() {
 	//Note: you may get an error "vector subscript out of range" if you are using this code for a mesh that doesnt have positions and normals
 	//Might be an idea to do a check for that before generating and binding the buffer.
 
-	load_mesh (MESH_NAME);
+	load_mesh (meshname);
 	unsigned int vp_vbo = 0;
 	loc1 = glGetAttribLocation(shaderProgramID, "vertex_position");
 	loc2 = glGetAttribLocation(shaderProgramID, "vertex_normal");
 	loc3 = glGetAttribLocation(shaderProgramID, "vertex_texture");
 
+	// vbos are temporary
 	glGenBuffers (1, &vp_vbo);
 	glBindBuffer (GL_ARRAY_BUFFER, vp_vbo);
-	glBufferData (GL_ARRAY_BUFFER, g_point_count * 3 * sizeof (float), &g_vp[0], GL_STATIC_DRAW);
+	glBufferData (GL_ARRAY_BUFFER, count * 3 * sizeof (float), &g_vp[0], GL_STATIC_DRAW);
 	unsigned int vn_vbo = 0;
 	glGenBuffers (1, &vn_vbo);
 	glBindBuffer (GL_ARRAY_BUFFER, vn_vbo);
-	glBufferData (GL_ARRAY_BUFFER, g_point_count * 3 * sizeof (float), &g_vn[0], GL_STATIC_DRAW);
+	glBufferData (GL_ARRAY_BUFFER, count * 3 * sizeof (float), &g_vn[0], GL_STATIC_DRAW);
 
 //	This is for texture coordinates which you don't currently need, so I have commented it out
 //	unsigned int vt_vbo = 0;
 //	glGenBuffers (1, &vt_vbo);
 //	glBindBuffer (GL_ARRAY_BUFFER, vt_vbo);
-//	glBufferData (GL_ARRAY_BUFFER, g_point_count * 2 * sizeof (float), &g_vt[0], GL_STATIC_DRAW);
+//	glBufferData (GL_ARRAY_BUFFER, count * 2 * sizeof (float), &g_vt[0], GL_STATIC_DRAW);
 	
-	unsigned int vao = 0;
+	// unsigned int vao;  // Vertex array object (Effectively ID of mesh)
+	glGenVertexArrays(1, &vao);
 	glBindVertexArray (vao);
 
 	glEnableVertexAttribArray (loc1);
@@ -240,7 +269,6 @@ void generateObjectBufferMesh() {
 //	glEnableVertexAttribArray (loc3);
 //	glBindBuffer (GL_ARRAY_BUFFER, vt_vbo);
 //	glVertexAttribPointer (loc3, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-	
 }
 
 
@@ -252,7 +280,7 @@ void display(){
 	// tell GL to only draw onto a pixel if the shape is closer to the viewer
 	glEnable (GL_DEPTH_TEST); // enable depth-testing
 	glDepthFunc (GL_LESS); // depth-testing interprets a smaller value as "closer"
-	glClearColor (0.5f, 0.5f, 0.5f, 1.0f);
+	glClearColor (0.2f, 0.5f, 0.7f, 1.0f); // Specify the clear colors used to clear the color buffer
 	glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram (shaderProgramID);
 
@@ -267,7 +295,8 @@ void display(){
 	mat4 view = identity_mat4 ();
 	mat4 persp_proj = perspective(45.0, (float)width/(float)height, 0.1, 100.0);
 	mat4 model = identity_mat4 ();
-	model = rotate_y_deg (model, rotate_y); 
+	model = rotate_y_deg (model, rotate_y);
+	model = translate(model, vec3(0, translate_y, 0));
 	view = translate (view, vec3 (0.0, 0.0, -5.0f));
 
 	// update uniforms & draw
@@ -275,8 +304,17 @@ void display(){
 	glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, view.m);
 	glUniformMatrix4fv (matrix_location, 1, GL_FALSE, model.m);
 
-	glDrawArrays (GL_TRIANGLES, 0, g_point_count);
-    glutSwapBuffers();
+	glBindVertexArray(monkeyID);
+	glDrawArrays (GL_TRIANGLES, 0, monkey_count);
+	////----------------------------------
+	mat4 untitled_matrix = identity_mat4();
+	untitled_matrix = translate(untitled_matrix, vec3(0.5, 0, 0));
+	untitled_matrix = rotate_y_deg(untitled_matrix, -(rotate_y*0.5));
+	glBindVertexArray(untitledID);
+	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, untitled_matrix.m);
+	glDrawArrays(GL_TRIANGLES, 0, untitled_count);
+    ////-----------------------------------
+	glutSwapBuffers();
 }
 
 
@@ -292,7 +330,8 @@ void updateScene() {
 	last_time = curr_time;
 
 	// rotate the model slowly around the y axis
-	rotate_y+=0.2f;
+	rotate_y+=0.1f;
+
 	// Draw the next frame
 	glutPostRedisplay();
 }
@@ -303,15 +342,15 @@ void init()
 	// Set up the shaders
 	GLuint shaderProgramID = CompileShaders();
 	// load mesh into a vertex buffer array
-	generateObjectBufferMesh();
-	
+	generateObjectBufferMesh(monkeyID, MESH_NAME1, monkey_count);
+	generateObjectBufferMesh(untitledID, MESH_NAME2, untitled_count);
 }
 
 // Placeholder code for the keypress
 void keypress(unsigned char key, int x, int y) {
 
 	if(key=='x'){
-		//Translate the base, etc.
+		translate_y = translate_y + 0.1;
 	}
 
 }
