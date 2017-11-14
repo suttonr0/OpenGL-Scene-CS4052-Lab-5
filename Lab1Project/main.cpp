@@ -1,5 +1,6 @@
 // To remove fopen error message
 #define _CRT_SECURE_NO_DEPRECATE
+#define _USE_MATH_DEFINES // for M_PI
 
 //Some Windows Headers (For Time, IO, etc.)
 #include <windows.h>
@@ -23,15 +24,14 @@
   ----------------------------------------------------------------------------*/
 // this mesh is a dae file format but you should be able to use any other format too, obj is typically what is used
 // put the mesh in your project directory, or provide a filepath for it here
-#define MESH_NAME1 "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/monkeyhead.dae"
-#define MESH_NAME2 "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/untitled.dae"
+#define MESH_NAME1 "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/BasicTree.dae"
+#define MESH_NAME2 "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/BasicSnowman.dae"
 /*----------------------------------------------------------------------------
   ----------------------------------------------------------------------------*/
 
 std::vector<float> g_vp, g_vn, g_vt;
-int g_point_count = 0;
-int monkey_count = 0;
-int untitled_count = 0;
+int monkey_count = 0;  // Global variable to store the number of vertices in the monkey object mesh
+int snowman_count = 0;  // Global variable to store the number of vertices in the untitled object mesh
 
 // Macro for indexing vertex buffer
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
@@ -39,10 +39,9 @@ int untitled_count = 0;
 using namespace std;
 GLuint shaderProgramID;
 
-
 unsigned int mesh_vao = 0;
 GLuint monkeyID = 1;
-GLuint untitledID = 2;
+GLuint snowman_ID = 2;
 
 int width = 800;
 int height = 600;
@@ -51,6 +50,10 @@ GLuint loc1, loc2, loc3;
 GLfloat rotate_y = 0.0f;
 GLfloat translate_y = 0.0f;
 
+vec3 cameraPosition = vec3(0, -2, -10); 
+
+// vec3 cameraDirection = vec3(0.0f, 0.0f, -1.0f);
+vec3 cameraRotation = vec3(0, 0, 0);
 
 #pragma region MESH LOADING
 /*----------------------------------------------------------------------------
@@ -75,7 +78,6 @@ bool load_mesh (const char* file_name) {
 	  const aiMesh* mesh = scene->mMeshes[m_i];
 	  printf("    %i vertices in mesh\n", mesh->mNumVertices);
 
-	  ////----------------------------------------
 	  g_vp.clear();
 	  g_vn.clear();
 	  g_vt.clear();
@@ -85,12 +87,11 @@ bool load_mesh (const char* file_name) {
 		  monkey_count = mesh->mNumVertices;
 	  }
 	  else if (file_name == MESH_NAME2) {
-	  untitled_count = mesh->mNumVertices;
-	  printf("found other object\n");
+		  snowman_count = mesh->mNumVertices;
+		  printf("found other object\n");
 	  }
 	  else
-		g_point_count = mesh->mNumVertices;
-	////----------------------------------------
+		  printf("MESH NOT FOUND!!");
 
     for (unsigned int v_i = 0; v_i < mesh->mNumVertices; v_i++) {
       if (mesh->HasPositions ()) {
@@ -223,7 +224,6 @@ GLuint CompileShaders()
 
 
 // make g_vp,... local but return them afterwards
-// g_pointcount 
 // Pass Mesh_Name to the generateObjectBufferMesh and get it to return the vao
 void generateObjectBufferMesh(GLuint &vao, const char* meshname, int &count ) {
 /*----------------------------------------------------------------------------
@@ -290,30 +290,73 @@ void display(){
 	int view_mat_location = glGetUniformLocation (shaderProgramID, "view");
 	int proj_mat_location = glGetUniformLocation (shaderProgramID, "proj");
 	
-
 	// Root of the Hierarchy
-	mat4 view = identity_mat4 ();
+	
+	// TRY TO GET LOOKAT WORKING
+
+	//cameraDirection.v[0] = sin(camerarotationy);
+	//mat4 view = look_at(cameraPosition, cameraPosition + cameraDirection, vec3(0.0f, 1.0f, 0.0f));
+
+	// Translation, then rotation so that the camera can rotate about its own axis
+	mat4 view = identity_mat4();
+	view = translate(view, cameraPosition);
+	view = rotate_x_deg(view, cameraRotation.v[0]);
+	view = rotate_y_deg(view, cameraRotation.v[1]);
+	view = rotate_z_deg(view, cameraRotation.v[2]);
+
+
 	mat4 persp_proj = perspective(45.0, (float)width/(float)height, 0.1, 100.0);
-	mat4 model = identity_mat4 ();
-	model = rotate_y_deg (model, rotate_y);
-	model = translate(model, vec3(0, translate_y, 0));
-	view = translate (view, vec3 (0.0, 0.0, -5.0f));
+	
+	
+	////----------------------------------
+	//CAMERA LOOKING IN -Z DIRECTION BY DEFAULT
+	////----------------------------------
+
+
+	mat4 tree_matrix = identity_mat4();
+	tree_matrix = rotate_x_deg(tree_matrix, -90);
+	tree_matrix = translate(tree_matrix, vec3(0, -1, -10));
+
+	tree_matrix = translate(tree_matrix, vec3(0, translate_y, 0));
+	//view = translate (view, vec3 (0.0, 0.0, -5.0f));
 
 	// update uniforms & draw
 	glUniformMatrix4fv (proj_mat_location, 1, GL_FALSE, persp_proj.m);
 	glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, view.m);
-	glUniformMatrix4fv (matrix_location, 1, GL_FALSE, model.m);
+	glUniformMatrix4fv (matrix_location, 1, GL_FALSE, tree_matrix.m);
 
 	glBindVertexArray(monkeyID);
 	glDrawArrays (GL_TRIANGLES, 0, monkey_count);
-	////----------------------------------
-	mat4 untitled_matrix = identity_mat4();
-	untitled_matrix = translate(untitled_matrix, vec3(0.5, 0, 0));
-	untitled_matrix = rotate_y_deg(untitled_matrix, -(rotate_y*0.5));
-	glBindVertexArray(untitledID);
-	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, untitled_matrix.m);
-	glDrawArrays(GL_TRIANGLES, 0, untitled_count);
+	
+	// TREE 2
+
+	mat4 tree_matrix2 = identity_mat4();
+	tree_matrix2 = rotate_x_deg(tree_matrix2, -90);
+	tree_matrix2 = translate(tree_matrix2, vec3(-4, -1, 0));
+
+	tree_matrix2 = translate(tree_matrix2, vec3(0, translate_y, 0));
+	//view = translate (view, vec3 (0.0, 0.0, -5.0f));
+
+	// update uniforms & draw
+	glUniformMatrix4fv(proj_mat_location, 1, GL_FALSE, persp_proj.m);
+	glUniformMatrix4fv(view_mat_location, 1, GL_FALSE, view.m);
+	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, tree_matrix2.m);
+
+	glBindVertexArray(monkeyID);
+	glDrawArrays(GL_TRIANGLES, 0, monkey_count);
+
+
+
+
+	mat4 snowman_matrix = identity_mat4();
+	snowman_matrix = translate(snowman_matrix, vec3(2.0, 4.0, 0.0));
+	snowman_matrix = rotate_x_deg(snowman_matrix, -90);
+	glBindVertexArray(snowman_ID);
+	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, snowman_matrix.m);
+	glDrawArrays(GL_TRIANGLES, 0, snowman_count);
     ////-----------------------------------
+
+
 	glutSwapBuffers();
 }
 
@@ -330,7 +373,7 @@ void updateScene() {
 	last_time = curr_time;
 
 	// rotate the model slowly around the y axis
-	rotate_y+=0.1f;
+	//rotate_y+=0.1f;
 
 	// Draw the next frame
 	glutPostRedisplay();
@@ -343,15 +386,51 @@ void init()
 	GLuint shaderProgramID = CompileShaders();
 	// load mesh into a vertex buffer array
 	generateObjectBufferMesh(monkeyID, MESH_NAME1, monkey_count);
-	generateObjectBufferMesh(untitledID, MESH_NAME2, untitled_count);
+	generateObjectBufferMesh(snowman_ID, MESH_NAME2, snowman_count);
 }
 
 // Placeholder code for the keypress
 void keypress(unsigned char key, int x, int y) {
 
-	if(key=='x'){
+	if(key=='i'){
 		translate_y = translate_y + 0.1;
 	}
+	if (key == 'w') {
+		cameraPosition.v[2] = cameraPosition.v[2] + 1;
+	}
+	if (key == 's') {
+		cameraPosition.v[2] = cameraPosition.v[2] - 1;
+	}
+	if (key == 'a') {
+		cameraPosition.v[0] = cameraPosition.v[0] + 1;
+	}
+	if (key == 'd') {
+		cameraPosition.v[0] = cameraPosition.v[0] - 1;
+	}
+	if (key == 'q') {
+		cameraRotation.v[1] = cameraRotation.v[1] - 10;
+	}
+	if (key == 'e') {
+		cameraRotation.v[1] = cameraRotation.v[1] + 10;
+	}
+	if (key == 'v') {
+		cameraRotation.v[2] = cameraRotation.v[2] - 10;
+	}
+	if (key == 'b') {
+		cameraRotation.v[2] = cameraRotation.v[2] + 10;
+	}
+	if (key == 'z') {
+		cameraRotation.v[0] = cameraRotation.v[0] - 10;
+	}
+	if (key == 'x') {
+		cameraRotation.v[0] = cameraRotation.v[0] + 10;
+	}
+
+	display();
+}
+
+void processMouse(int x, int y)
+{
 
 }
 
