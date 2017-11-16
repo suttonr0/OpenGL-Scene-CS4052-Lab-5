@@ -30,7 +30,7 @@
   ----------------------------------------------------------------------------*/
 
 std::vector<float> g_vp, g_vn, g_vt;
-int monkey_count = 0;  // Global variable to store the number of vertices in the monkey object mesh
+int tree_count = 0;  // Global variable to store the number of vertices in the tree object mesh
 int snowman_count = 0;  // Global variable to store the number of vertices in the untitled object mesh
 
 // Macro for indexing vertex buffer
@@ -40,7 +40,7 @@ using namespace std;
 GLuint shaderProgramID;
 
 unsigned int mesh_vao = 0;
-GLuint monkeyID = 1;
+GLuint treeID = 1;
 GLuint snowman_ID = 2;
 
 int width = 800;
@@ -83,8 +83,8 @@ bool load_mesh (const char* file_name) {
 	  g_vt.clear();
 
 	  if (file_name == MESH_NAME1) {
-		  printf("found monkey\n");
-		  monkey_count = mesh->mNumVertices;
+		  printf("found tree\n");
+		  tree_count = mesh->mNumVertices;
 	  }
 	  else if (file_name == MESH_NAME2) {
 		  snowman_count = mesh->mNumVertices;
@@ -187,10 +187,13 @@ GLuint CompileShaders()
         exit(1);
     }
 
-	// Create two shader objects, one for the vertex, and one for the fragment shader
-    AddShader(shaderProgramID, "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/Shaders/simpleVertexShader.txt", GL_VERTEX_SHADER);
-    AddShader(shaderProgramID, "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/Shaders/simpleFragmentShader.txt", GL_FRAGMENT_SHADER);
+	//// Change to /simple...Shader.txt for basic test lighting
 
+	// Create two shader objects, one for the vertex, and one for the fragment shader
+    AddShader(shaderProgramID, "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/Shaders/phongVertexShader.txt", GL_VERTEX_SHADER);
+	printf("loaded vertex shader");
+	AddShader(shaderProgramID, "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/Shaders/phongFragmentShader.txt", GL_FRAGMENT_SHADER);
+	printf("loaded fragment shader");
     GLint Success = 0;
     GLchar ErrorLog[1024] = { 0 };
 	// After compiling all shader objects and attaching them to the program, we can finally link it
@@ -325,8 +328,8 @@ void display(){
 	glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, view.m);
 	glUniformMatrix4fv (matrix_location, 1, GL_FALSE, tree_matrix.m);
 
-	glBindVertexArray(monkeyID);
-	glDrawArrays (GL_TRIANGLES, 0, monkey_count);
+	glBindVertexArray(treeID);
+	glDrawArrays (GL_TRIANGLES, 0, tree_count);
 	
 	// TREE 2
 
@@ -342,8 +345,8 @@ void display(){
 	glUniformMatrix4fv(view_mat_location, 1, GL_FALSE, view.m);
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, tree_matrix2.m);
 
-	glBindVertexArray(monkeyID);
-	glDrawArrays(GL_TRIANGLES, 0, monkey_count);
+	glBindVertexArray(treeID);
+	glDrawArrays(GL_TRIANGLES, 0, tree_count);
 
 
 
@@ -385,7 +388,7 @@ void init()
 	// Set up the shaders
 	GLuint shaderProgramID = CompileShaders();
 	// load mesh into a vertex buffer array
-	generateObjectBufferMesh(monkeyID, MESH_NAME1, monkey_count);
+	generateObjectBufferMesh(treeID, MESH_NAME1, tree_count);
 	generateObjectBufferMesh(snowman_ID, MESH_NAME2, snowman_count);
 }
 
