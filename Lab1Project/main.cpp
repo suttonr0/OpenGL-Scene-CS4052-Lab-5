@@ -51,11 +51,11 @@ GLfloat rotate_y = 0.0f;
 GLfloat translate_y = 0.0f;
 GLfloat camerarotationy = 0.0f;
 
-vec3 cameraPosition = vec3(0, 2, -10); 
-vec3 cameraDirection = vec3(0.0f, 0.0f, 1.0f); // looking in +z direction
+vec3 cameraPosition = vec3(0, 2, -15); 
+// Initialised values for camera direction don't matter since the x, z coordinates are 
+// determined by camerarotationy
+vec3 cameraDirection = vec3(0.0f, 0.0f, 1.0f); // looking in +z direction by default
 vec3 cameraUpVector = vec3(0.0f, 1.0f, 0.0f);
-
-// vec3 cameraRotation = vec3(0, 0, 0);
 
 
 #pragma region MESH LOADING
@@ -296,33 +296,10 @@ void display(){
 	int view_mat_location = glGetUniformLocation (shaderProgramID, "view");
 	int proj_mat_location = glGetUniformLocation (shaderProgramID, "proj");
 	
-	// Root of the Hierarchy
-	
-	// TRY TO GET LOOKAT WORKING
-
 	cameraDirection.v[0] = sin(camerarotationy);
 	cameraDirection.v[2] = cos(camerarotationy);
-	
-
-
 	mat4 view = look_at(cameraPosition, cameraPosition + cameraDirection, cameraUpVector);
-
-	// Translation, then rotation so that the camera can rotate about its own axis
-	/*
-	mat4 view = identity_mat4();
-	view = translate(view, cameraPosition);
-	view = rotate_x_deg(view, cameraRotation.v[0]);
-	view = rotate_y_deg(view, cameraRotation.v[1]);
-	view = rotate_z_deg(view, cameraRotation.v[2]);
-	*/
-
 	mat4 persp_proj = perspective(45.0, (float)width/(float)height, 0.1, 100.0);
-	
-	
-	////----------------------------------
-	//CAMERA LOOKING IN -Z DIRECTION BY DEFAULT
-	////----------------------------------
-
 
 	mat4 tree_matrix = identity_mat4();
 	tree_matrix = rotate_x_deg(tree_matrix, -90);
@@ -410,22 +387,24 @@ void keypress(unsigned char key, int x, int y) {
 		cameraPosition = cameraPosition + cameraDirection;  // Move forward in direction of camera
 	}
 	if (key == 's') {
-		cameraPosition = cameraPosition - cameraDirection;
+		cameraPosition = cameraPosition - cameraDirection;  // Move backward in direction of camera
 	}
 	if (key == 'a') {
-		// Move left relative to camera direction
+		// Move left relative to camera direction (in direction 90 deg left of camera direction) 
 		cameraPosition.v[0] = cameraPosition.v[0] + cameraDirection.v[2];  // x1' = x1 + y2
 		cameraPosition.v[2] = cameraPosition.v[2] - cameraDirection.v[0];  // y1' = y1 - x2
 	}
 	if (key == 'd') {
-		// Move right relative to camera direction
+		// Move right relative to camera direction (in direction 90 deg right of camera direction) 
 		cameraPosition.v[0] = cameraPosition.v[0] - cameraDirection.v[2];  // x1' = x1 - y2
 		cameraPosition.v[2] = cameraPosition.v[2] + cameraDirection.v[0];  // y1' = y1 + x2
 	}
 	if (key == 'q') {
+		// Rotate counter-clockwise about y-axis (turn left)
 		camerarotationy += 0.01f;
 	}
 	if (key == 'e') {
+		// Rotate clockwise about y-axis (turn right)
 		camerarotationy -= 0.01f;
 	}
 	if (key == 'v') {
