@@ -49,11 +49,14 @@ int height = 600;
 GLuint loc1, loc2, loc3;
 GLfloat rotate_y = 0.0f;
 GLfloat translate_y = 0.0f;
+GLfloat camerarotationy = 0.0f;
 
-vec3 cameraPosition = vec3(0, -2, -10); 
+vec3 cameraPosition = vec3(0, 2, -10); 
+vec3 cameraDirection = vec3(0.0f, 0.0f, 1.0f); // looking in +z direction
+vec3 cameraUpVector = vec3(0.0f, 1.0f, 0.0f);
 
-// vec3 cameraDirection = vec3(0.0f, 0.0f, -1.0f);
-vec3 cameraRotation = vec3(0, 0, 0);
+// vec3 cameraRotation = vec3(0, 0, 0);
+
 
 #pragma region MESH LOADING
 /*----------------------------------------------------------------------------
@@ -84,7 +87,7 @@ bool load_mesh (const char* file_name) {
 
 	  if (file_name == MESH_NAME1) {
 		  printf("found tree\n");
-		  tree_count = mesh->mNumVertices;
+		  tree_count = mesh->mNumVertices;  // Count number of vertices for later drawing
 	  }
 	  else if (file_name == MESH_NAME2) {
 		  snowman_count = mesh->mNumVertices;
@@ -191,9 +194,9 @@ GLuint CompileShaders()
 
 	// Create two shader objects, one for the vertex, and one for the fragment shader
     AddShader(shaderProgramID, "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/Shaders/phongVertexShader.txt", GL_VERTEX_SHADER);
-	printf("loaded vertex shader");
+	printf("loaded vertex shader\n");
 	AddShader(shaderProgramID, "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/Shaders/phongFragmentShader.txt", GL_FRAGMENT_SHADER);
-	printf("loaded fragment shader");
+	printf("loaded fragment shader\n");
     GLint Success = 0;
     GLchar ErrorLog[1024] = { 0 };
 	// After compiling all shader objects and attaching them to the program, we can finally link it
@@ -266,7 +269,7 @@ void generateObjectBufferMesh(GLuint &vao, const char* meshname, int &count ) {
 	glVertexAttribPointer (loc1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray (loc2);
 	glBindBuffer (GL_ARRAY_BUFFER, vn_vbo);
-	glVertexAttribPointer (loc2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	glVertexAttribPointer (loc2, 3, GL_FLOAT, GL_FALSE, 0, NULL);  
 
 //	This is for texture coordinates which you don't currently need, so I have commented it out
 //	glEnableVertexAttribArray (loc3);
@@ -297,16 +300,21 @@ void display(){
 	
 	// TRY TO GET LOOKAT WORKING
 
-	//cameraDirection.v[0] = sin(camerarotationy);
-	//mat4 view = look_at(cameraPosition, cameraPosition + cameraDirection, vec3(0.0f, 1.0f, 0.0f));
+	cameraDirection.v[0] = sin(camerarotationy);
+	cameraDirection.v[2] = cos(camerarotationy);
+	
+
+
+	mat4 view = look_at(cameraPosition, cameraPosition + cameraDirection, cameraUpVector);
 
 	// Translation, then rotation so that the camera can rotate about its own axis
+	/*
 	mat4 view = identity_mat4();
 	view = translate(view, cameraPosition);
 	view = rotate_x_deg(view, cameraRotation.v[0]);
 	view = rotate_y_deg(view, cameraRotation.v[1]);
 	view = rotate_z_deg(view, cameraRotation.v[2]);
-
+	*/
 
 	mat4 persp_proj = perspective(45.0, (float)width/(float)height, 0.1, 100.0);
 	
@@ -399,34 +407,38 @@ void keypress(unsigned char key, int x, int y) {
 		translate_y = translate_y + 0.1;
 	}
 	if (key == 'w') {
-		cameraPosition.v[2] = cameraPosition.v[2] + 1;
+		cameraPosition = cameraPosition + cameraDirection;  // Move forward in direction of camera
 	}
 	if (key == 's') {
-		cameraPosition.v[2] = cameraPosition.v[2] - 1;
+		cameraPosition = cameraPosition - cameraDirection;
 	}
 	if (key == 'a') {
-		cameraPosition.v[0] = cameraPosition.v[0] + 1;
+		// Move left relative to camera direction
+		cameraPosition.v[0] = cameraPosition.v[0] + cameraDirection.v[2];  // x1' = x1 + y2
+		cameraPosition.v[2] = cameraPosition.v[2] - cameraDirection.v[0];  // y1' = y1 - x2
 	}
 	if (key == 'd') {
-		cameraPosition.v[0] = cameraPosition.v[0] - 1;
+		// Move right relative to camera direction
+		cameraPosition.v[0] = cameraPosition.v[0] - cameraDirection.v[2];  // x1' = x1 - y2
+		cameraPosition.v[2] = cameraPosition.v[2] + cameraDirection.v[0];  // y1' = y1 + x2
 	}
 	if (key == 'q') {
-		cameraRotation.v[1] = cameraRotation.v[1] - 10;
+		camerarotationy += 0.01f;
 	}
 	if (key == 'e') {
-		cameraRotation.v[1] = cameraRotation.v[1] + 10;
+		camerarotationy -= 0.01f;
 	}
 	if (key == 'v') {
-		cameraRotation.v[2] = cameraRotation.v[2] - 10;
+		//cameraRotation.v[2] = cameraRotation.v[2] - 10;
 	}
 	if (key == 'b') {
-		cameraRotation.v[2] = cameraRotation.v[2] + 10;
+		//cameraRotation.v[2] = cameraRotation.v[2] + 10;
 	}
 	if (key == 'z') {
-		cameraRotation.v[0] = cameraRotation.v[0] - 10;
+		//cameraRotation.v[0] = cameraRotation.v[0] - 10;
 	}
 	if (key == 'x') {
-		cameraRotation.v[0] = cameraRotation.v[0] + 10;
+		//cameraRotation.v[0] = cameraRotation.v[0] + 10;
 	}
 
 	display();
