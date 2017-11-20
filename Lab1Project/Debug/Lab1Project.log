@@ -1,5 +1,5 @@
 ﻿  main.cpp
-c:\.trinity 4\cs4052 computer graphics\lab 5\lab 5 code\lab1project\main.cpp(302): warning C4305: 'argument': truncation from 'double' to 'float'
-c:\.trinity 4\cs4052 computer graphics\lab 5\lab 5 code\lab1project\main.cpp(384): warning C4244: '=': conversion from 'double' to 'GLfloat', possible loss of data
+c:\.trinity 4\cs4052 computer graphics\lab 5\lab 5 code\lab1project\main.cpp(303): warning C4305: 'argument': truncation from 'double' to 'float'
+c:\.trinity 4\cs4052 computer graphics\lab 5\lab 5 code\lab1project\main.cpp(382): warning C4244: '=': conversion from 'double' to 'GLfloat', possible loss of data
   Lab1Project.vcxproj -> C:\.Trinity 4\CS4052 Computer Graphics\Lab 5\Lab 5 Code\Debug\Lab1Project.exe
   Lab1Project.vcxproj -> C:\.Trinity 4\CS4052 Computer Graphics\Lab 5\Lab 5 Code\Debug\Lab1Project.pdb (Partial PDB)

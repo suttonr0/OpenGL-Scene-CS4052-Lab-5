@@ -30,8 +30,8 @@
   ----------------------------------------------------------------------------*/
 
 std::vector<float> g_vp, g_vn, g_vt;
-int tree_count = 0;  // Global variable to store the number of vertices in the tree object mesh
-int snowman_count = 0;  // Global variable to store the number of vertices in the untitled object mesh
+int tree_vertex_count = 0;  // Global variable to store the number of vertices in the tree object mesh
+int snowman_vertex_count = 0;  // Global variable to store the number of vertices in the untitled object mesh
 
 // Macro for indexing vertex buffer
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
@@ -65,7 +65,6 @@ vec3 cameraUpVector = vec3(0.0f, 1.0f, 0.0f);
 
 bool load_mesh (const char* file_name) {
   const aiScene* scene = aiImportFile (file_name, aiProcess_Triangulate); // TRIANGLES!
-        fprintf (stderr, "ERROR: reading mesh %s\n", file_name);
   if (!scene) {
     fprintf (stderr, "ERROR: reading mesh %s\n", file_name);
     return false;
@@ -81,16 +80,17 @@ bool load_mesh (const char* file_name) {
 	  const aiMesh* mesh = scene->mMeshes[m_i];
 	  printf("    %i vertices in mesh\n", mesh->mNumVertices);
 
+	  // Clear from previous mesh
 	  g_vp.clear();
 	  g_vn.clear();
 	  g_vt.clear();
 
 	  if (file_name == MESH_NAME1) {
 		  printf("found tree\n");
-		  tree_count = mesh->mNumVertices;  // Count number of vertices for later drawing
+		  tree_vertex_count = mesh->mNumVertices;  // Count number of vertices for later drawing
 	  }
 	  else if (file_name == MESH_NAME2) {
-		  snowman_count = mesh->mNumVertices;
+		  snowman_vertex_count = mesh->mNumVertices;
 		  printf("found other object\n");
 	  }
 	  else
@@ -106,8 +106,9 @@ bool load_mesh (const char* file_name) {
       }
       if (mesh->HasNormals ()) {
         const aiVector3D* vn = &(mesh->mNormals[v_i]);
-        //printf ("      vn %i (%f,%f,%f)\n", v_i, vn->x, vn->y, vn->z);
-        g_vn.push_back (vn->x);
+        // printf ("      vn %i (%f,%f,%f)\n", v_i, vn->x, vn->y, vn->z);
+        // THESE VERTEX NORMALS ARE INCORRECT FOR PHONG SHADING
+		g_vn.push_back (vn->x);
         g_vn.push_back (vn->y);
         g_vn.push_back (vn->z);
       }
@@ -314,7 +315,7 @@ void display(){
 	glUniformMatrix4fv (matrix_location, 1, GL_FALSE, tree_matrix.m);
 
 	glBindVertexArray(treeID);
-	glDrawArrays (GL_TRIANGLES, 0, tree_count);
+	glDrawArrays (GL_TRIANGLES, 0, tree_vertex_count);
 	
 	// TREE 2
 
@@ -331,17 +332,14 @@ void display(){
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, tree_matrix2.m);
 
 	glBindVertexArray(treeID);
-	glDrawArrays(GL_TRIANGLES, 0, tree_count);
-
-
-
+	glDrawArrays(GL_TRIANGLES, 0, tree_vertex_count);
 
 	mat4 snowman_matrix = identity_mat4();
 	snowman_matrix = translate(snowman_matrix, vec3(2.0, 4.0, 0.0));
 	snowman_matrix = rotate_x_deg(snowman_matrix, -90);
 	glBindVertexArray(snowman_ID);
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, snowman_matrix.m);
-	glDrawArrays(GL_TRIANGLES, 0, snowman_count);
+	glDrawArrays(GL_TRIANGLES, 0, snowman_vertex_count);
     ////-----------------------------------
 
 
@@ -373,8 +371,8 @@ void init()
 	// Set up the shaders
 	GLuint shaderProgramID = CompileShaders();
 	// load mesh into a vertex buffer array
-	generateObjectBufferMesh(treeID, MESH_NAME1, tree_count);
-	generateObjectBufferMesh(snowman_ID, MESH_NAME2, snowman_count);
+	generateObjectBufferMesh(treeID, MESH_NAME1, tree_vertex_count);
+	generateObjectBufferMesh(snowman_ID, MESH_NAME2, snowman_vertex_count);
 }
 
 // Placeholder code for the keypress
