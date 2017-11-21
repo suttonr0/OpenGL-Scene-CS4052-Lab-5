@@ -18,20 +18,39 @@
 #include <math.h>
 #include <vector> // STL dynamic memory.
 
+// STB Image loader
+// https://github.com/nothings/stb/blob/master/stb_image.h
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 
 /*----------------------------------------------------------------------------
-                   MESH TO LOAD
+                MESHES TO LOAD
   ----------------------------------------------------------------------------*/
 // this mesh is a dae file format but you should be able to use any other format too, obj is typically what is used
 // put the mesh in your project directory, or provide a filepath for it here
 #define MESH_NAME1 "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/BasicTree.dae"
-#define MESH_NAME2 "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/BasicSnowman.dae"
+#define MESH_NAME2 "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/UVSnowman.obj"
+#define MESH_NAME3 "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/basicplane.dae"
+/*----------------------------------------------------------------------------
+				TEXTURES TO LOAD
+----------------------------------------------------------------------------*/
+
+// Textures need to be larger than ???x??? and in png or jpeg format
+#define SNOW_TEXTURE "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/SnowmanTexture.png"
+#define GROUND_TEXTURE "C:/.Trinity 4/CS4052 Computer Graphics/Lab 5/Lab 5 Code/Lab1Project/SnowTexture.png"
+
 /*----------------------------------------------------------------------------
   ----------------------------------------------------------------------------*/
 
+
+
+
 std::vector<float> g_vp, g_vn, g_vt;
 int tree_vertex_count = 0;  // Global variable to store the number of vertices in the tree object mesh
-int snowman_vertex_count = 0;  // Global variable to store the number of vertices in the untitled object mesh
+int snowman_vertex_count = 0;  // Global variable to store the number of vertices in the snowman mesh
+int ground_vertex_count = 0;  // Global variable to store the number of vertices in the ground mesh
+
 
 // Macro for indexing vertex buffer
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
@@ -40,8 +59,15 @@ using namespace std;
 GLuint shaderProgramID;
 
 unsigned int mesh_vao = 0;
+
 GLuint treeID = 1;
 GLuint snowman_ID = 2;
+GLuint ground_ID = 3;
+
+GLuint tree_tex_ID = 1;
+GLuint snowman_tex_ID = 2;
+GLuint ground_tex_ID = 3;
+
 
 int width = 800;
 int height = 600;
@@ -52,9 +78,7 @@ GLfloat translate_y = 0.0f;
 GLfloat camerarotationy = 0.0f;
 
 vec3 cameraPosition = vec3(0, 2, -15); 
-// Initialised values for camera direction don't matter since the x, z coordinates are 
-// determined by camerarotationy
-vec3 cameraDirection = vec3(0.0f, 0.0f, 1.0f); // looking in +z direction by default
+vec3 cameraDirection = vec3(0.0f, 0.0f, 1.0f); // start direction depends on camerarotationy, not this vector
 vec3 cameraUpVector = vec3(0.0f, 1.0f, 0.0f);
 
 
@@ -91,7 +115,11 @@ bool load_mesh (const char* file_name) {
 	  }
 	  else if (file_name == MESH_NAME2) {
 		  snowman_vertex_count = mesh->mNumVertices;
-		  printf("found other object\n");
+		  printf("found snowman\n");
+	  }
+	  else if (file_name == MESH_NAME3) {
+		  ground_vertex_count = mesh->mNumVertices;
+		  printf("found ground plane\n");
 	  }
 	  else
 		  printf("MESH NOT FOUND!!");
@@ -114,7 +142,7 @@ bool load_mesh (const char* file_name) {
       }
       if (mesh->HasTextureCoords (0)) {
         const aiVector3D* vt = &(mesh->mTextureCoords[0][v_i]);
-        //printf ("      vt %i (%f,%f)\n", v_i, vt->x, vt->y);
+        // printf ("      vt %i (%f,%f)\n", v_i, vt->x, vt->y);
         g_vt.push_back (vt->x);
         g_vt.push_back (vt->y);
       }
@@ -122,6 +150,7 @@ bool load_mesh (const char* file_name) {
         // NB: could store/print tangents here
       }
     }
+	printf("      vt size: %i\n", g_vt.size());
   }
   
   aiReleaseImport (scene);
@@ -256,10 +285,10 @@ void generateObjectBufferMesh(GLuint &vao, const char* meshname, int &count ) {
 	glBufferData (GL_ARRAY_BUFFER, count * 3 * sizeof (float), &g_vn[0], GL_STATIC_DRAW);
 
 //	This is for texture coordinates which you don't currently need, so I have commented it out
-//	unsigned int vt_vbo = 0;
-//	glGenBuffers (1, &vt_vbo);
-//	glBindBuffer (GL_ARRAY_BUFFER, vt_vbo);
-//	glBufferData (GL_ARRAY_BUFFER, count * 2 * sizeof (float), &g_vt[0], GL_STATIC_DRAW);
+	unsigned int vt_vbo = 0;
+	glGenBuffers(1, &vt_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vt_vbo);
+	glBufferData(GL_ARRAY_BUFFER, count * 2 * sizeof(float), &g_vt[0], GL_STATIC_DRAW);
 	
 	// unsigned int vao;  // Vertex array object (Effectively ID of mesh)
 	glGenVertexArrays(1, &vao);
@@ -273,13 +302,36 @@ void generateObjectBufferMesh(GLuint &vao, const char* meshname, int &count ) {
 	glVertexAttribPointer (loc2, 3, GL_FLOAT, GL_FALSE, 0, NULL);  
 
 //	This is for texture coordinates which you don't currently need, so I have commented it out
-//	glEnableVertexAttribArray (loc3);
-//	glBindBuffer (GL_ARRAY_BUFFER, vt_vbo);
-//	glVertexAttribPointer (loc3, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(loc3);
+	glBindBuffer(GL_ARRAY_BUFFER, vt_vbo);
+	glVertexAttribPointer(loc3, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+	
 }
 
 
 #pragma endregion VBO_FUNCTIONS
+
+// --------------------------------------------------------
+// https://open.gl/textures
+// --------------------------------------------------------
+void loadTextures(GLuint& tex, const char* file_name) {
+	int img_width, img_height, n;
+
+	// STB image loader
+	unsigned char* loaded_image = stbi_load(file_name, &img_width, &img_height, &n, STBI_rgb);
+
+	glGenTextures(1, &tex);
+	glActiveTexture(GL_TEXTURE0);  // Specifies which texture unit a texture object is bound to with glBindTexture
+	glBindTexture(GL_TEXTURE_2D, tex);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img_width, img_height, 0, GL_RGB, 
+		GL_UNSIGNED_BYTE, loaded_image);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);  // Type of interpolation used
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);  // Type of interpolation used
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);  // repeat across x coordinate if texture too small 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);  // repeat across y coordinate if texture too small 
+}
 
 
 void display(){
@@ -296,52 +348,73 @@ void display(){
 	int matrix_location = glGetUniformLocation (shaderProgramID, "model");
 	int view_mat_location = glGetUniformLocation (shaderProgramID, "view");
 	int proj_mat_location = glGetUniformLocation (shaderProgramID, "proj");
+	int texture_location = glGetUniformLocation(shaderProgramID, "texture_for_shader");
 	
 	cameraDirection.v[0] = sin(camerarotationy);
 	cameraDirection.v[2] = cos(camerarotationy);
 	mat4 view = look_at(cameraPosition, cameraPosition + cameraDirection, cameraUpVector);
 	mat4 persp_proj = perspective(45.0, (float)width/(float)height, 0.1, 100.0);
 
+	glUniformMatrix4fv(proj_mat_location, 1, GL_FALSE, persp_proj.m);
+	glUniformMatrix4fv(view_mat_location, 1, GL_FALSE, view.m);
+
+
+	// SNOWMAN 1 ----------------------
+	mat4 snowman_matrix = identity_mat4();
+	snowman_matrix = translate(snowman_matrix, vec3(2.0, 0.0, 0.0));
+	//snowman_matrix = rotate_x_deg(snowman_matrix, -90);
+
+	// Texturing
+	glBindTexture(GL_TEXTURE_2D, snowman_tex_ID);
+	glUniform1i(texture_location, 0);
+
+	// Bind vertices
+	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, snowman_matrix.m);
+	glBindVertexArray(snowman_ID);
+	glDrawArrays(GL_TRIANGLES, 0, snowman_vertex_count);
+
+	// TREE 1 ---------------------
 	mat4 tree_matrix = identity_mat4();
 	tree_matrix = rotate_x_deg(tree_matrix, -90);
 	tree_matrix = translate(tree_matrix, vec3(0, -1, -10));
-
 	tree_matrix = translate(tree_matrix, vec3(0, translate_y, 0));
-	//view = translate (view, vec3 (0.0, 0.0, -5.0f));
+
+	// Texturing
+	glBindTexture(GL_TEXTURE_2D, tree_tex_ID);
+	glUniform1i(texture_location, 0);
 
 	// update uniforms & draw
-	glUniformMatrix4fv (proj_mat_location, 1, GL_FALSE, persp_proj.m);
-	glUniformMatrix4fv (view_mat_location, 1, GL_FALSE, view.m);
 	glUniformMatrix4fv (matrix_location, 1, GL_FALSE, tree_matrix.m);
-
 	glBindVertexArray(treeID);
 	glDrawArrays (GL_TRIANGLES, 0, tree_vertex_count);
 	
-	// TREE 2
-
+	// TREE 2 ---------------------
 	mat4 tree_matrix2 = identity_mat4();
 	tree_matrix2 = rotate_x_deg(tree_matrix2, -90);
 	tree_matrix2 = translate(tree_matrix2, vec3(-4, -1, 0));
-
 	tree_matrix2 = translate(tree_matrix2, vec3(0, translate_y, 0));
-	//view = translate (view, vec3 (0.0, 0.0, -5.0f));
 
-	// update uniforms & draw
-	glUniformMatrix4fv(proj_mat_location, 1, GL_FALSE, persp_proj.m);
-	glUniformMatrix4fv(view_mat_location, 1, GL_FALSE, view.m);
+	// Texturing
+	glBindTexture(GL_TEXTURE_2D, tree_tex_ID);
+	glUniform1i(texture_location, 0);
+
+	// update uniforms & drawly 
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, tree_matrix2.m);
-
 	glBindVertexArray(treeID);
 	glDrawArrays(GL_TRIANGLES, 0, tree_vertex_count);
+	
+	// GROUND 1 ------------------------
+	mat4 ground_matrix = identity_mat4();
+	ground_matrix = rotate_x_deg(ground_matrix, -90);
+	ground_matrix = scale(ground_matrix, vec3(10.0, 0.0, 10.0));
+	// Texturing
+	glBindTexture(GL_TEXTURE_2D, ground_tex_ID);
+	glUniform1i(texture_location, 0);
 
-	mat4 snowman_matrix = identity_mat4();
-	snowman_matrix = translate(snowman_matrix, vec3(2.0, 4.0, 0.0));
-	snowman_matrix = rotate_x_deg(snowman_matrix, -90);
-	glBindVertexArray(snowman_ID);
-	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, snowman_matrix.m);
-	glDrawArrays(GL_TRIANGLES, 0, snowman_vertex_count);
-    ////-----------------------------------
-
+	// Bind vertices
+	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, ground_matrix.m);
+	glBindVertexArray(ground_ID);
+	glDrawArrays(GL_TRIANGLES, 0, ground_vertex_count);
 
 	glutSwapBuffers();
 }
@@ -358,9 +431,6 @@ void updateScene() {
 		delta = 0.03f;
 	last_time = curr_time;
 
-	// rotate the model slowly around the y axis
-	//rotate_y+=0.1f;
-
 	// Draw the next frame
 	glutPostRedisplay();
 }
@@ -373,6 +443,11 @@ void init()
 	// load mesh into a vertex buffer array
 	generateObjectBufferMesh(treeID, MESH_NAME1, tree_vertex_count);
 	generateObjectBufferMesh(snowman_ID, MESH_NAME2, snowman_vertex_count);
+	//generateObjectBufferMesh(ground_ID, MESH_NAME3, ground_vertex_count);
+
+	loadTextures(snowman_tex_ID, SNOW_TEXTURE);
+	loadTextures(tree_tex_ID, SNOW_TEXTURE);
+	loadTextures(ground_tex_ID, GROUND_TEXTURE);
 }
 
 // Placeholder code for the keypress
@@ -399,31 +474,13 @@ void keypress(unsigned char key, int x, int y) {
 	}
 	if (key == 'q') {
 		// Rotate counter-clockwise about y-axis (turn left)
-		camerarotationy += 0.01f;
+		camerarotationy += 0.015f;
 	}
 	if (key == 'e') {
-		// Rotate clockwise about y-axis (turn right)
-		camerarotationy -= 0.01f;
+		// Rotate clockwise aboutengl y-axis (turn right)
+		camerarotationy -= 0.015f;
 	}
-	if (key == 'v') {
-		//cameraRotation.v[2] = cameraRotation.v[2] - 10;
-	}
-	if (key == 'b') {
-		//cameraRotation.v[2] = cameraRotation.v[2] + 10;
-	}
-	if (key == 'z') {
-		//cameraRotation.v[0] = cameraRotation.v[0] - 10;
-	}
-	if (key == 'x') {
-		//cameraRotation.v[0] = cameraRotation.v[0] + 10;
-	}
-
 	display();
-}
-
-void processMouse(int x, int y)
-{
-
 }
 
 int main(int argc, char** argv){
